@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Planar-Guided Wireframe Generation for Building Roof Reconstruction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+</head>
+
+<body>
+    <div class="page">
+
+        <!-- HERO CARD -->
+        <header class="hero">
+            <div class="hero-card">
+                <h1>Planar-Guided Wireframe Generation for Building Roof Reconstruction from Airborne LiDAR Scanning Point Clouds</h1>
+
+                <p class="authors">
+                    <span class="author">Xu Lin Lin<sup>1</sup></span>
+                </p>
+
+                <p class="affiliations">
+                    <span class="affiliation"><sup>1</sup>University of Science and Technology of China (USTC)</span>
+                </p>
+
+                <p class="links">
+                    <span class="link-button-disabled">Paper (coming soon)</span>
+                    <span class="link-button-disabled">Code (coming soon)</span>
+                </p>
+            </div>
+        </header>
+
+        <main>
+            <!-- TEASER -->
+            <section class="section">
+                <figure class="paper-teaser">
+                    <img src="assets/1introduction.png" alt="Introduction figure">
+                    <figcaption class="teaser-caption">
+                        Figure 1: We present a planar-guided wireframe generation method for building roof reconstruction from airborne LiDAR point clouds. Our approach leverages planar segmentation to guide the extraction of roof wireframes, enabling accurate and robust reconstruction of complex building structures.
+                    </figcaption>
+                </figure>
+            </section>
+
+            <!-- ABSTRACT -->
+            <section class="section">
+                <h2>Abstract</h2>
+                <p>
+                    Building roof reconstruction from airborne LiDAR point clouds is a fundamental task in urban modeling and 3D city reconstruction. However, existing methods often struggle with complex roof structures and noisy point clouds. We propose a planar-guided wireframe generation approach that combines planar segmentation with wireframe extraction to achieve accurate and robust roof reconstruction.
+                </p>
+                <p>
+                    Our method first segments the point cloud into planar regions, then extracts wireframe structures guided by these planar constraints. This planar-guided approach ensures geometric consistency and improves the quality of the reconstructed roof models. Experimental results demonstrate that our method can effectively handle various roof types and produce high-quality 3D building models.
+                </p>
+            </section>
+
+            <!-- 3D VISUALIZATION -->
+            <section id="results" class="section">
+                <h2>3D Visualization (Interactive)</h2>
+                <div class="gallery-switcher">
+                    <div class="gallery-tabs" role="tablist" aria-label="3D model gallery">
+                        <button class="gallery-tab is-active" data-gallery="original" role="tab" aria-selected="true">Original Point Cloud</button>
+                        <button class="gallery-tab" data-gallery="segmented" role="tab" aria-selected="false">Segmented Point Cloud</button>
+                        <button class="gallery-tab" data-gallery="planes" role="tab" aria-selected="false">Planar Mesh</button>
+                        <button class="gallery-tab" data-gallery="wireframe" role="tab" aria-selected="false">Wireframe</button>
+                    </div>
+
+                    <div class="gallery-display-single">
+                        <div class="gallery-model-large" aria-live="polite">
+                            <div id="main-viewer" class="threejs-viewer"></div>
+                            <div id="loading-indicator" class="loading-indicator">Loading model...</div>
+                            <p class="gallery-caption" id="main-caption">Original Point Cloud</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="interactive-note">Click and drag to rotate • Scroll to zoom • Right-click to pan</p>
+            </section>
+
+            <!-- PIPELINE -->
+            <section id="method" class="section">
+                <h2>Method Pipeline</h2>
+                <div class="pipeline-grid">
+                    <div class="pipeline-step">
+                        <div class="step-number">1</div>
+                        <h3>Point Cloud Input</h3>
+                        <p>Airborne LiDAR scanning point clouds of building roofs</p>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <div class="step-number">2</div>
+                        <h3>Planar Segmentation</h3>
+                        <p>Segment point cloud into planar regions using RANSAC</p>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <div class="step-number">3</div>
+                        <h3>Wireframe Extraction</h3>
+                        <p>Extract wireframe structures guided by planar constraints</p>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <div class="step-number">4</div>
+                        <h3>Roof Reconstruction</h3>
+                        <p>Generate final 3D building roof model</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COMPARISON -->
+            <section id="comparison" class="section">
+                <h2>Comparison: Processing Steps</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <div id="viewer-original" class="threejs-viewer-small"></div>
+                        <p class="comparison-caption"><strong>Step 1:</strong> Original Point Cloud</p>
+                    </div>
+                    <div class="comparison-item">
+                        <div id="viewer-segmented" class="threejs-viewer-small"></div>
+                        <p class="comparison-caption"><strong>Step 2:</strong> Segmented Point Cloud</p>
+                    </div>
+                    <div class="comparison-item">
+                        <div id="viewer-planes" class="threejs-viewer-small"></div>
+                        <p class="comparison-caption"><strong>Step 3:</strong> Planar Mesh</p>
+                    </div>
+                    <div class="comparison-item">
+                        <div id="viewer-wireframe" class="threejs-viewer-small"></div>
+                        <p class="comparison-caption"><strong>Step 4:</strong> Wireframe Result</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FEATURES -->
+            <section class="section">
+                <h2>Key Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>Planar-Guided</h3>
+                        <p>Leverages planar segmentation to guide wireframe extraction, ensuring geometric consistency</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏗️</div>
+                        <h3>Robust Reconstruction</h3>
+                        <p>Handles complex roof structures and noisy point clouds effectively</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Efficient Processing</h3>
+                        <p>Fast and accurate processing of large-scale airborne LiDAR data</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📐</div>
+                        <h3>High Quality</h3>
+                        <p>Produces high-quality 3D building models suitable for urban applications</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 University of Science and Technology of China. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Check if Three.js is loaded
+        if (typeof THREE === 'undefined') {
+            alert('ERROR: THREE.js not loaded! Check your internet connection.');
+            console.error('THREE.js not loaded');
+        } else {
+            console.log('✓ THREE.js loaded successfully, version:', THREE.REVISION);
+        }
+
+        if (typeof THREE.OBJLoader === 'undefined') {
+            alert('ERROR: OBJLoader not loaded!');
+            console.error('OBJLoader not loaded');
+        } else {
+            console.log('✓ OBJLoader loaded successfully');
+        }
+
+        if (typeof THREE.OrbitControls === 'undefined') {
+            alert('ERROR: OrbitControls not loaded!');
+            console.error('OrbitControls not loaded');
+        } else {
+            console.log('✓ OrbitControls loaded successfully');
+        }
+
+        // Three.js viewer setup
+        let mainScene, mainCamera, mainRenderer, mainControls, currentModel;
+        const viewers = {};
+
+        // Model paths configuration
+        const modelPaths = {
+            original: {
+                src: "assets/5_OriColor.obj",
+                caption: "Original Point Cloud - Raw airborne LiDAR scanning data",
+                type: "points"
+            },
+            segmented: {
+                src: "assets/5_SegColor_Wireframe_4096_Normal.obj",
+                caption: "Segmented Point Cloud - Color-coded planar regions",
+                type: "points"
+            },
+            planes: {
+                src: "assets/5_all_cycles_planes.obj",
+                caption: "Planar Mesh - Reconstructed planar surfaces",
+                type: "mixed"
+            },
+            wireframe: {
+                src: "assets/5_wireframe.obj",
+                caption: "Wireframe - Extracted roof structure",
+                type: "lines"
+            }
+        };
+
+        // Initialize main viewer
+        function initMainViewer() {
+            const container = document.getElementById('main-viewer');
+            const loading = document.getElementById('loading-indicator');
+            
+            // Scene
+            mainScene = new THREE.Scene();
+            mainScene.background = new THREE.Color(0xf0f0f0);
+            
+            // Camera
+            mainCamera = new THREE.PerspectiveCamera(
+                50,
+                container.clientWidth / 600,
+                0.01,
+                100
+            );
+            mainCamera.position.set(2, 2, 2);
+            
+            // Renderer
+            mainRenderer = new THREE.WebGLRenderer({ antialias: true });
+            mainRenderer.setSize(container.clientWidth, 600);
+            mainRenderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(mainRenderer.domElement);
+            
+            // Controls
+            mainControls = new THREE.OrbitControls(mainCamera, mainRenderer.domElement);
+            mainControls.enableDamping = true;
+            mainControls.dampingFactor = 0.05;
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            mainScene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            mainScene.add(directionalLight);
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(5, 20, 0xcccccc, 0xe0e0e0);
+            mainScene.add(gridHelper);
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                mainControls.update();
+                mainRenderer.render(mainScene, mainCamera);
+            }
+            animate();
+            
+            // Load initial model
+            loadModel('original', loading);
+        }
+
+        // Process geometry to add colors if missing
+        function ensureColors(geometry) {
+            if (!geometry.attributes.color && geometry.attributes.position) {
+                const positions = geometry.attributes.position;
+                const colors = new Float32Array(positions.count * 3);
+                
+                // Generate colors based on position (height-based coloring)
+                for (let i = 0; i < positions.count; i++) {
+                    const y = positions.getY(i);
+                    colors[i * 3] = 0.5 + y * 0.2;
+                    colors[i * 3 + 1] = 0.5 + y * 0.2;
+                    colors[i * 3 + 2] = 0.5 + y * 0.2;
+                }
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            }
+        }
+
+        // Load model into main viewer
+        function loadModel(key, loading) {
+            const data = modelPaths[key];
+            if (!data) {
+                console.error('Model key not found:', key);
+                return;
+            }
+            
+            loading.style.display = 'block';
+            loading.textContent = 'Loading model...';
+            loading.style.color = '#2563eb';
+            
+            console.log('Loading model:', data.src);
+            
+            // Remove previous model
+            if (currentModel) {
+                mainScene.remove(currentModel);
+                currentModel = null;
+            }
+            
+            const loader = new THREE.OBJLoader();
+            loader.load(
+                data.src,
+                function(object) {
+                    console.log('Model loaded successfully:', data.src);
+                    console.log('Object children:', object.children.length);
+                    
+                    // Process loaded object
+                    const group = new THREE.Group();
+                    
+                    object.traverse((child) => {
+                        console.log('Child type:', child.type);
+                        
+                        if (child.isLineSegments || child.isLine) {
+                            // Wireframe lines
+                            console.log('Found line segments');
+                            child.material = new THREE.LineBasicMaterial({
+                                color: 0xff0000,
+                                linewidth: 2
+                            });
+                            group.add(child.clone());
+                        } else if (child.isMesh) {
+                            console.log('Found mesh, vertices:', child.geometry.attributes.position.count);
+                            
+                            const geometry = child.geometry.clone();
+                            ensureColors(geometry);
+                            
+                            // Create points
+                            const pointsMaterial = new THREE.PointsMaterial({
+                                size: 0.015,
+                                vertexColors: true,
+                                sizeAttenuation: true
+                            });
+                            const points = new THREE.Points(geometry, pointsMaterial);
+                            group.add(points);
+                            
+                            // Also show mesh with wireframe for planes
+                            if (data.type === 'mixed') {
+                                const meshMaterial = new THREE.MeshBasicMaterial({
+                                    color: 0x4488ff,
+                                    wireframe: true,
+                                    transparent: true,
+                                    opacity: 0.3
+                                });
+                                const mesh = new THREE.Mesh(geometry.clone(), meshMaterial);
+                                group.add(mesh);
+                            }
+                        }
+                    });
+                    
+                    if (group.children.length === 0) {
+                        console.error('No renderable geometry found in model');
+                        loading.textContent = 'No geometry found in model';
+                        loading.style.color = '#e74c3c';
+                        return;
+                    }
+                    
+                    // Center and scale
+                    const box = new THREE.Box3().setFromObject(group);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    
+                    if (maxDim === 0) {
+                        console.error('Model has zero size');
+                        loading.textContent = 'Invalid model size';
+                        loading.style.color = '#e74c3c';
+                        return;
+                    }
+                    
+                    const scale = 2 / maxDim;
+                    
+                    group.position.sub(center);
+                    group.scale.multiplyScalar(scale);
+                    
+                    mainScene.add(group);
+                    currentModel = group;
+                    
+                    // Update camera
+                    mainCamera.position.set(2, 2, 2);
+                    mainControls.target.set(0, 0, 0);
+                    mainControls.update();
+                    
+                    loading.style.display = 'none';
+                    console.log('Model rendering complete');
+                },
+                function(xhr) {
+                    if (xhr.lengthComputable) {
+                        const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
+                        loading.textContent = `Loading... ${percent}%`;
+                        console.log('Loading progress:', percent + '%');
+                    }
+                },
+                function(error) {
+                    console.error('Error loading model:', error);
+                    console.error('Model path:', data.src);
+                    loading.textContent = 'Error: ' + (error.message || 'Failed to load model');
+                    loading.style.color = '#e74c3c';
+                }
+            );
+        }
+
+        // Initialize small viewers
+        function initSmallViewer(containerId, modelPath, modelType = 'points') {
+            const container = document.getElementById(containerId);
+            
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f5);
+            
+            const camera = new THREE.PerspectiveCamera(
+                50,
+                container.clientWidth / 300,
+                0.01,
+                100
+            );
+            camera.position.set(2, 2, 2);
+            
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, 300);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            const loader = new THREE.OBJLoader();
+            loader.load(
+                modelPath, 
+                function(object) {
+                    console.log('Small viewer loaded:', containerId);
+                    
+                    const group = new THREE.Group();
+                    
+                    object.traverse((child) => {
+                        if (child.isLineSegments || child.isLine) {
+                            child.material = new THREE.LineBasicMaterial({
+                                color: 0xff0000,
+                                linewidth: 2
+                            });
+                            group.add(child.clone());
+                        } else if (child.isMesh) {
+                            const geometry = child.geometry.clone();
+                            ensureColors(geometry);
+                            
+                            const pointsMaterial = new THREE.PointsMaterial({
+                                size: 0.015,
+                                vertexColors: true,
+                                sizeAttenuation: true
+                            });
+                            const points = new THREE.Points(geometry, pointsMaterial);
+                            group.add(points);
+                            
+                            if (modelType === 'mixed') {
+                                const meshMaterial = new THREE.MeshBasicMaterial({
+                                    color: 0x4488ff,
+                                    wireframe: true,
+                                    transparent: true,
+                                    opacity: 0.3
+                                });
+                                const mesh = new THREE.Mesh(geometry.clone(), meshMaterial);
+                                group.add(mesh);
+                            }
+                        }
+                    });
+                    
+                    const box = new THREE.Box3().setFromObject(group);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 2 / maxDim;
+                    
+                    group.position.sub(center);
+                    group.scale.multiplyScalar(scale);
+                    
+                    scene.add(group);
+                },
+                undefined,
+                function(error) {
+                    console.error('Error loading small viewer:', containerId, error);
+                }
+            );
+            
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            viewers[containerId] = { scene, camera, renderer, controls };
+        }
+
+        // Gallery tab switching
+        const galleryTabs = document.querySelectorAll('.gallery-tab');
+        const mainCaption = document.getElementById('main-caption');
+        const loading = document.getElementById('loading-indicator');
+
+        galleryTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const key = tab.dataset.gallery;
+                const data = modelPaths[key];
+                
+                if (data) {
+                    loadModel(key, loading);
+                    mainCaption.textContent = data.caption;
+                }
+
+                galleryTabs.forEach((otherTab) => {
+                    const isActive = otherTab === tab;
+                    otherTab.classList.toggle('is-active', isActive);
+                    otherTab.setAttribute('aria-selected', String(isActive));
+                });
+            });
+        });
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            if (mainRenderer) {
+                const container = document.getElementById('main-viewer');
+                mainCamera.aspect = container.clientWidth / 600;
+                mainCamera.updateProjectionMatrix();
+                mainRenderer.setSize(container.clientWidth, 600);
+            }
+            
+            Object.keys(viewers).forEach(key => {
+                const viewer = viewers[key];
+                const container = document.getElementById(key);
+                viewer.camera.aspect = container.clientWidth / 300;
+                viewer.camera.updateProjectionMatrix();
+                viewer.renderer.setSize(container.clientWidth, 300);
+            });
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing viewers...');
+            initMainViewer();
+            initSmallViewer('viewer-original', 'assets/5_OriColor.obj', 'points');
+            initSmallViewer('viewer-segmented', 'assets/5_SegColor_Wireframe_4096_Normal.obj', 'points');
+            initSmallViewer('viewer-planes', 'assets/5_all_cycles_planes.obj', 'mixed');
+            initSmallViewer('viewer-wireframe', 'assets/5_wireframe.obj', 'lines');
+        });
+    </script>
+
+</body>
+
+</html>
