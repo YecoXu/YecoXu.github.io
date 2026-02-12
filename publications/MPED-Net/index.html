@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Planar-Guided Wireframe Generation for Building Roof Reconstruction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', Georgia, serif;
+            background: #f0f2f5;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 40px 50px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            letter-spacing: 0.3px;
+        }
+
+        .authors {
+            text-align: center;
+            color: #333;
+            font-size: 1.05em;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .author {
+            margin: 0 15px;
+        }
+
+        .affiliations {
+            text-align: center;
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+
+        .abstract {
+            background: #fafafa;
+            padding: 25px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-top: 20px;
+            line-height: 1.8;
+            color: #444;
+            text-align: justify;
+        }
+
+        .abstract h3 {
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .selector-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .selector-title {
+            font-size: 1.3em;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .model-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .model-selector label {
+            font-size: 1.05em;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .model-selector select {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: 1px solid #999;
+            border-radius: 4px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            min-width: 200px;
+            font-family: 'Times New Roman', Georgia, serif;
+        }
+
+        .model-selector select:focus {
+            outline: none;
+            border-color: #555;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+        }
+
+        .viewer-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .current-model-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .viewers-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .viewer-wrapper {
+            position: relative;
+        }
+
+        .viewer-label {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            z-index: 10;
+            pointer-events: none;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        .threejs-viewer {
+            width: 100%;
+            height: 350px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 350px;
+            color: #999;
+            font-style: italic;
+        }
+
+        .controls-hint {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 15px;
+            font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            color: #666;
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 0.9em;
+            border-top: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header with paper information -->
+        <div class="header">
+            <h1>Planar-Constrained Wireframe Generation for Building Roof Reconstruction from Airborne LiDAR Point Clouds</h1>
+            
+            <p class="authors">
+                <span class="author">Xu YiKe<sup>1</sup></span>
+                <span class="author">Cao Li<sup>1</sup></span>
+                <span class="author">Liu XiaoPing<sup>1</sup></span>
+            </p>
+            
+            <p class="affiliations">
+                <sup>1</sup>School of Computer and Information Science, Hefei University of Technology
+            </p>
+            
+            <div class="abstract">
+                <h3>Abstract</h3>
+                <p>
+                    In the field of photogrammetry, the precise modeling of roof structures from airborne LiDAR point clouds is still considered a formidable task. This challenge is primarily attributed to the inherent geometric complexity of roofs, exacerbated by sensor noise, non-uniform sampling, and feature blurring in real-world data. Mainstream corner-based methodologies often suffer from localized detection errors, leading to fragmented or topologically inconsistent reconstructions. Moreover, the sparsity of edge samples in LiDAR data has hindered the effective utilization of sharp boundaries as structural constraints. To address these limitations, an automated roof reconstruction framework based on planar-constrained wireframe generation is presented. First, a multi-task deep learning architecture, MPED-Net, is constructed to synergistically perform planar segmentation, surface normal estimation, and edge denoising. This stage provides high-fidelity geometric primitives by effectively suppressing sampling artifacts. Subsequently, a reconstruction pipeline guided by geometric priors is developed, where robust 3D wireframes are extracted via ray-projection under planar constraints. To finalize the surface, a constrained Delaunay triangulation is executed, enhanced by a novel centroid filtering criterion to enforce non-convex topological consistency. The superior performance of the proposed method is validated through extensive experiments on the Building3D dataset, demonstrating its capability to achieve high-fidelity reconstruction from noisy airborne LiDAR point clouds. Finally, the experimental dataset is made publicly available to facilitate further research in urban reconstruction.
+                  </p>
+            </div>
+        </div>
+
+        <!-- Model selector -->
+        <div class="selector-section">
+            <div class="selector-title">Interactive 3D Visualization</div>
+            <div class="model-selector">
+                <label for="modelSelect">Select Model:</label>
+                <select id="modelSelect">
+                    <option value="480">Model 480</option>
+                    <option value="10005">Model 10005</option>
+                    <option value="10089">Model 10089</option>
+                    <option value="10152">Model 10152</option>
+                    <option value="10177">Model 10177</option>
+                    <option value="21930">Model 21930</option>
+                    <option value="21958">Model 21958</option>
+                    <option value="22002">Model 22002</option>
+                    <option value="22079">Model 22079</option>
+                    <option value="22116">Model 22116</option>
+                    <option value="22144">Model 22144</option>
+                    <option value="22170">Model 22170</option>
+                    <option value="27717">Model 27717</option>
+                    <option value="27847">Model 27847</option>
+                    <option value="27904">Model 27904</option>
+                    <option value="28335">Model 28335</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Viewer section -->
+        <div class="viewer-section">
+            <div class="current-model-title" id="currentModelTitle">Model 480</div>
+            <div class="viewers-container" id="viewersContainer"></div>
+            <div class="controls-hint">
+                Drag to rotate • Scroll to zoom • Right-click to pan
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 Hefei University of Technology. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Model IDs
+        const modelIds = [
+            '480', '10005', '10089', '10152', '10177', '21930', '21958', '22002',
+            '22079', '22116', '22144', '22170', '27717', '27847', '27904', '28335'
+        ];
+
+        // File types
+        const fileTypes = [
+            { suffix: '_edge.obj', label: 'Edge Points', type: 'points', color: 0xff0000, size: 0.02 },
+            { suffix: '_seg_points.obj', label: 'Segmented Points', type: 'points', color: null, size: 0.015 },
+            { suffix: '_wireframe.obj', label: 'Wireframe', type: 'lines', color: 0x0000ff, linewidth: 2 },
+            { suffix: '_mesh.obj', label: 'Mesh', type: 'mesh', color: 0x808080, opacity: 0.9 }
+        ];
+
+        let currentViewers = [];
+
+        // Parse OBJ for points with colors
+        function parseOBJForPoints(text) {
+            const lines = text.split('\n');
+            const positions = [];
+            const colors = [];
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (line.startsWith('v ')) {
+                    const parts = line.split(/\s+/);
+                    positions.push(
+                        parseFloat(parts[1]),
+                        parseFloat(parts[2]),
+                        parseFloat(parts[3])
+                    );
+                    
+                    if (parts.length >= 7) {
+                        colors.push(
+                            parseFloat(parts[4]),
+                            parseFloat(parts[5]),
+                            parseFloat(parts[6])
+                        );
+                    } else {
+                        colors.push(0.7, 0.7, 0.7);
+                    }
+                }
+            }
+            
+            return { positions, colors };
+        }
+
+        // Initialize viewer
+        function initViewer(containerId, modelPath, fileType) {
+            const container = document.getElementById(containerId);
+            
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xfafafa);
+            
+            const camera = new THREE.PerspectiveCamera(
+                50,
+                container.clientWidth / container.clientHeight,
+                0.01,
+                100
+            );
+            camera.position.set(1.2, 1, 2.5);
+            camera.lookAt(0, 0, 0);
+            
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.innerHTML = '';
+            container.appendChild(renderer.domElement);
+            
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            // Store viewer info
+            const viewerInfo = { scene, camera, renderer, controls, animate };
+            
+            // Load model based on type
+            if (fileType.type === 'points') {
+                fetch(modelPath)
+                    .then(response => response.text())
+                    .then(text => {
+                        const { positions, colors } = parseOBJForPoints(text);
+                        
+                        if (positions.length === 0) {
+                            container.innerHTML = '<div class="loading">No data</div>';
+                            return;
+                        }
+                        
+                        const geometry = new THREE.BufferGeometry();
+                        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                        
+                        let material;
+                        if (fileType.color !== null) {
+                            material = new THREE.PointsMaterial({
+                                size: fileType.size,
+                                color: fileType.color,
+                                sizeAttenuation: true
+                            });
+                        } else {
+                            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                            material = new THREE.PointsMaterial({
+                                size: fileType.size,
+                                vertexColors: true,
+                                sizeAttenuation: true
+                            });
+                        }
+                        
+                        const points = new THREE.Points(geometry, material);
+                        
+                        // Center and scale
+                        geometry.computeBoundingBox();
+                        const box = geometry.boundingBox;
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const scale = 2 / maxDim;
+                        
+                        points.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+                        points.scale.set(scale, scale, scale);
+                        
+                        // Rotate model for better initial view
+                        points.rotation.x = -Math.PI / 6;  // Tilt up slightly
+                        points.rotation.z = Math.PI / 4;   // Rotate 45 degrees
+                        
+                        scene.add(points);
+                    })
+                    .catch(error => {
+                        console.error('Error loading:', modelPath, error);
+                        container.innerHTML = '<div class="loading">Load failed</div>';
+                    });
+            } else if (fileType.type === 'lines') {
+                const loader = new THREE.OBJLoader();
+                loader.load(
+                    modelPath,
+                    function(object) {
+                        const group = new THREE.Group();
+                        
+                        object.traverse((child) => {
+                            if (child.isLineSegments || child.isLine) {
+                                child.material = new THREE.LineBasicMaterial({
+                                    color: fileType.color,
+                                    linewidth: fileType.linewidth
+                                });
+                                group.add(child.clone());
+                            }
+                        });
+                        
+                        if (group.children.length > 0) {
+                            const box = new THREE.Box3().setFromObject(group);
+                            const center = box.getCenter(new THREE.Vector3());
+                            const size = box.getSize(new THREE.Vector3());
+                            const maxDim = Math.max(size.x, size.y, size.z);
+                            const scale = 2 / maxDim;
+                            
+                            group.position.sub(center);
+                            group.scale.multiplyScalar(scale);
+                            
+                            // Rotate model for better initial view
+                            group.rotation.x = -Math.PI / 6;  // Tilt up slightly
+                            group.rotation.z = Math.PI / 4;   // Rotate 45 degrees
+                            
+                            scene.add(group);
+                        }
+                    },
+                    undefined,
+                    function(error) {
+                        console.error('Error loading:', modelPath, error);
+                        container.innerHTML = '<div class="loading">Load failed</div>';
+                    }
+                );
+            } else if (fileType.type === 'mesh') {
+                const loader = new THREE.OBJLoader();
+                loader.load(
+                    modelPath,
+                    function(object) {
+                        const group = new THREE.Group();
+                        
+                        object.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material = new THREE.MeshPhongMaterial({
+                                    color: fileType.color,
+                                    transparent: true,
+                                    opacity: fileType.opacity,
+                                    side: THREE.DoubleSide
+                                });
+                                group.add(child.clone());
+                            }
+                        });
+                        
+                        if (group.children.length > 0) {
+                            const box = new THREE.Box3().setFromObject(group);
+                            const center = box.getCenter(new THREE.Vector3());
+                            const size = box.getSize(new THREE.Vector3());
+                            const maxDim = Math.max(size.x, size.y, size.z);
+                            const scale = 2 / maxDim;
+                            
+                            group.position.sub(center);
+                            group.scale.multiplyScalar(scale);
+                            
+                            // Rotate model for better initial view
+                            group.rotation.x = -Math.PI / 6;  // Tilt up slightly
+                            group.rotation.z = Math.PI / 4;   // Rotate 45 degrees
+                            
+                            scene.add(group);
+                        }
+                    },
+                    undefined,
+                    function(error) {
+                        console.error('Error loading:', modelPath, error);
+                        container.innerHTML = '<div class="loading">Load failed</div>';
+                    }
+                );
+            }
+            
+            return viewerInfo;
+        }
+
+        // Load model
+        function loadModel(modelId) {
+            console.log('Loading model:', modelId);
+            
+            // Update title
+            document.getElementById('currentModelTitle').textContent = `Model ${modelId}`;
+            
+            // Clear existing viewers
+            currentViewers.forEach(viewer => {
+                if (viewer.renderer) {
+                    viewer.renderer.dispose();
+                }
+            });
+            currentViewers = [];
+            
+            // Clear container
+            const container = document.getElementById('viewersContainer');
+            container.innerHTML = '';
+            
+            // Create new viewers
+            fileTypes.forEach((fileType, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'viewer-wrapper';
+                
+                const label = document.createElement('div');
+                label.className = 'viewer-label';
+                label.textContent = fileType.label;
+                wrapper.appendChild(label);
+                
+                const viewer = document.createElement('div');
+                viewer.className = 'threejs-viewer';
+                viewer.id = `viewer-${index}`;
+                viewer.innerHTML = '<div class="loading">Loading...</div>';
+                wrapper.appendChild(viewer);
+                
+                container.appendChild(wrapper);
+            });
+            
+            // Initialize viewers
+            setTimeout(() => {
+                fileTypes.forEach((fileType, index) => {
+                    const containerId = `viewer-${index}`;
+                    const modelPath = `assets/${modelId}${fileType.suffix}`;
+                    const viewerInfo = initViewer(containerId, modelPath, fileType);
+                    currentViewers.push(viewerInfo);
+                });
+            }, 100);
+        }
+
+        // Model selector change event
+        document.getElementById('modelSelect').addEventListener('change', (e) => {
+            loadModel(e.target.value);
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing...');
+            loadModel('480');
+        });
+    </script>
+</body>
+
+</html>
