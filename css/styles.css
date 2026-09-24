@@ -1114,6 +1114,7 @@ article .article-metadata {
 
 .media.stream-item .article-title,
 .card-simple .article-title {
+  min-height: 3rem;
   font-size: 1.2rem;
 }
 
